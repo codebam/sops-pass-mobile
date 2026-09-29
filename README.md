@@ -45,6 +45,25 @@ npx expo start     # scan the QR with Expo Go (Android, SDK 57)
 
 All Expo packages were installed with `npx expo install` (SDK-pinned) — keep it that way.
 
+### Connecting the phone (firewall-aware)
+
+The desktop firewall keeps LAN ports closed by design (`allowedTCPPorts = []`;
+only `tailscale0` & co. are trusted), so the LAN `exp://192.168.x.x:PORT` URL and QR
+code can never connect from the phone. Connect over the tailnet instead — the phone
+(`pixel-10a`) is already on it:
+
+```sh
+# QR + URL encode the tailnet IP:
+EXPO_PACKAGER_HOSTNAME=100.101.46.50 npx expo start --port 8082
+# or keep the default start and in Expo Go use "Enter URL manually":
+#   exp://100.101.46.50:8082      (MagicDNS: exp://nixos-desktop.tail7d7a2.ts.net:8082)
+```
+
+The dev server reflects the requesting host, so manifest, JS bundle and hot reload
+all stay on `tailscale0` — no firewall changes needed. (Note port 8081 is taken by
+SearXNG on localhost, so Expo prompts for another port; pick one and stay
+consistent.)
+
 ## Onboarding the phone (one time)
 
 1. Open the app → **Generate key on this device** → copy the `age1…` recipient
@@ -99,7 +118,7 @@ all editable in Settings.
 | `GitHub 401` | token invalid/expired/revoked |
 | decrypt error mentioning the identity | phone recipient not in `.sops.yaml`, or `updatekeys` not run/committed/pushed |
 | `MAC mismatch` | file changed after encryption, or not the sops-encrypted vault |
-| QR won't connect | phone must be on the same Wi-Fi; otherwise `npx expo start --tunnel` |
+| QR won't connect | Expected on LAN: the NixOS firewall blocks dev ports from `wlan0` by design. Connect over Tailscale — `EXPO_PACKAGER_HOSTNAME=100.101.46.50 npx expo start --port 8082`, or enter `exp://100.101.46.50:8082` manually |
 | Expo Go shows "unsupported SDK" | update Expo Go from the Play Store (needs SDK 57) |
 
 ## Repo layout
