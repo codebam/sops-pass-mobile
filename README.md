@@ -38,7 +38,7 @@ custom native modules.
 ```sh
 npm install
 npm run fixtures   # generate sops-CLI fixtures (throwaway keys) for the test suite
-npm test           # 28 tests
+npm test           # 38 tests
 npm run typecheck
 npx expo start     # scan the QR with Expo Go (Android, SDK 57)
 ```
@@ -63,6 +63,27 @@ The dev server reflects the requesting host, so manifest, JS bundle and hot relo
 all stay on `tailscale0` — no firewall changes needed. (Note port 8081 is taken by
 SearXNG on localhost, so Expo prompts for another port; pick one and stay
 consistent.)
+
+## Building a release APK
+
+No Expo Go, no Metro — the JS is bundled and Hermes-compiled into the APK.
+
+```sh
+# one-time: Android SDK needs platform android-37.0 (base Android 17) + build-tools 37.0.0
+sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+# compileSdk 37 resolves to platform hash "android-37", but the base platform
+# installs as android-37.0 — link it once so AGP finds it:
+ln -s android-37.0 "$ANDROID_HOME/platforms/android-37"
+
+cd android && ./gradlew assembleRelease
+# → app/build/outputs/apk/release/app-release.apk   (universal: all 4 ABIs)
+```
+
+Requires JDK 17+ (`JAVA_HOME` set) and `ANDROID_HOME` pointing at the SDK.
+The release variant is signed with the React Native template's debug keystore —
+fine for sideloading your own phone; use your own keystore for anything else.
+The generated `android/` project is committed, so `expo prebuild` is not needed.
 
 ## Onboarding the phone (one time)
 
@@ -111,6 +132,11 @@ nonexistent branch yields GitHub's `404 — No commit found for the ref`.)
   TOTP entry). Requires `dist-web/` served (see script header).
 - `npx expo export --platform android` — production Hermes bundle compiles clean
   (1430 modules).
+- Regression for the nastiest device bug so far: React Native's fetch polyfill
+  stringifies `ReadableStream` bodies, so `new Response(stream).arrayBuffer()`
+  (age-encryption's internal read-out) yields the literal bytes
+  `"[object ReadableStream]"` on Hermes — tests break `Response` the same way and
+  require a full, MAC-verified decrypt anyway.
 
 ## Troubleshooting
 
@@ -131,6 +157,7 @@ src/lib/age.ts        on-device age keygen + recipient derivation
 src/lib/totp.ts       RFC 6238 TOTP + otpauth:// parsing (pass otp parity)
 src/lib/utf8.ts       UTF-8 codec + guarded TextEncoder/TextDecoder fallback
 src/lib/github.ts     contents-API vault fetch
+src/lib/selftest.ts   bundled on-device key self-test (challenge file)
 src/lib/storage.ts    secure-store secrets + ciphertext cache
 src/state/AppContext.tsx  app state, lock, refresh
 src/ui/               theme + component kit
