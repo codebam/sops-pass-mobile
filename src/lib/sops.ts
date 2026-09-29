@@ -16,7 +16,7 @@ import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { base64 } from '@scure/base';
 import { parse as parseYaml } from 'yaml';
-import { makeAgeIdentity, recipientForIdentity } from './age';
+import { decryptToBytes, makeAgeIdentity, recipientForIdentity } from './age';
 import { utf8Decode, utf8Encode } from './utf8';
 
 export class SopsError extends Error {
@@ -302,7 +302,7 @@ export async function unwrapDataKey(meta: SopsMetadata, identity: string): Promi
       const d = new age.Decrypter();
       d.addIdentity(makeAgeIdentity(identity));
       const blob = age.armor.decode(st.enc);
-      const key = await d.decrypt(blob);
+      const key = await decryptToBytes(d, blob);
       if (key.length !== 32) {
         throw new SopsFormatError(`unexpected data key length ${key.length} (expected 32)`);
       }

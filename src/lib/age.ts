@@ -19,7 +19,7 @@ import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { randomBytes } from '@noble/hashes/utils.js';
-import type { Identity, Stanza } from 'age-encryption';
+import type { Decrypter, Identity, Stanza } from 'age-encryption';
 
 export interface AgeKeyPair {
   /** AGE-SECRET-KEY-1... — secret, kept in secure storage. */
@@ -101,4 +101,57 @@ export function makeAgeIdentity(rawIdentity: string): Identity {
       return null;
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Stream-safe read-out
+//
+// age-encryption's `Decrypter.decrypt(bytes)` finishes with
+// `readAll()` = `new Uint8Array(await new Response(stream).arrayBuffer())`.
+// React Native's fetch polyfill cannot consume ReadableStream bodies: it
+// stringifies them, so the "decrypted" bytes become the literal ASCII text
+// "[object ReadableStream]" (23 bytes) instead of the plaintext. That silently
+// breaks data-key unwrapping (length check fails → misreported as
+// "not a recipient") and any other read-out. Feeding a stream selects the
+// library's streaming overload instead; the decrypted ReadableStream is then
+// drained here with the reader API only (which RN's stream polyfill supports).
+// ---------------------------------------------------------------------------
+
+async function drainToBytes(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value && value.length > 0) {
+      chunks.push(value);
+      total += value.length;
+    }
+  }
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    out.set(c, off);
+    off += c.length;
+  }
+  return out;
+}
+
+function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+}
+
+/** Decrypt without relying on `new Response(stream)` for the read-out (see above). */
+export async function decryptToBytes(d: Decrypter, blob: Uint8Array): Promise<Uint8Array> {
+  const out = (await d.decrypt(bytesToStream(blob))) as unknown;
+  if (out instanceof Uint8Array) return out;
+  const maybeStream = out as ReadableStream<Uint8Array> | null;
+  if (maybeStream && typeof maybeStream.getReader === 'function') return await drainToBytes(maybeStream);
+  throw new Error('age decrypt returned an unsupported result on this runtime');
 }

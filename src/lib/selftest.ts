@@ -8,7 +8,7 @@
  * vault-sync failure lies in the fetched file content.
  */
 import * as age from 'age-encryption';
-import { makeAgeIdentity, recipientForIdentity } from './age';
+import { decryptToBytes, makeAgeIdentity, recipientForIdentity } from './age';
 import { utf8Decode } from './utf8';
 
 export const SELF_TEST_RECIPIENT = 'age189wm4hu8m82mmantwfnxpj3p4687e6q49aqg2yvzr3v3p7v0zgrsg0t4rx';
@@ -50,7 +50,7 @@ export async function deviceKeySelfTest(identity: string): Promise<SelfTestResul
   try {
     const d = new age.Decrypter();
     d.addIdentity(makeAgeIdentity(identity));
-    const out = utf8Decode(await d.decrypt(blob));
+    const out = utf8Decode(await decryptToBytes(d, blob));
     if (out !== PLAINTEXT) throw new Error(`unexpected plaintext ${JSON.stringify(out.slice(0, 40))}`);
     return {
       ok: true,
