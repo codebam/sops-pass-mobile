@@ -48,6 +48,23 @@ const browser = await puppeteer.launch({
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 420, height: 900 });
+
+  // Mirror Hermes/Expo Go: keep getRandomValues, remove crypto.subtle, before
+  // any app code runs. If Chromium refuses the override we still test the rest.
+  if ((process.env.SMOKE_STRIP_SUBTLE ?? '1') !== '0') {
+    await page.evaluateOnNewDocument(() => {
+      try {
+        const real = window.crypto;
+        Object.defineProperty(window, 'crypto', {
+          value: { getRandomValues: real.getRandomValues.bind(real) },
+          configurable: true,
+        });
+      } catch (e) {
+        console.warn('[smoke] could not strip crypto.subtle:', String(e));
+      }
+    });
+  }
+
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e.message)));
   page.on('console', (m) => {
@@ -57,7 +74,8 @@ try {
   console.log('[1] booting', APP_URL);
   await page.goto(APP_URL, { waitUntil: 'networkidle0', timeout: 60000 });
   await page.waitForFunction(() => document.body.innerText.includes('Set up this device'), { timeout: 30000 });
-  console.log('    setup screen rendered');
+  const subtleState = await page.evaluate(() => (typeof globalThis.crypto?.subtle === 'undefined' ? 'stripped (Hermes-like)' : 'PRESENT'));
+  console.log('    setup screen rendered; crypto.subtle:', subtleState);
 
   console.log('[2] installing fetch stub for api.github.com (vault screen auto-syncs on arrival)');
   await page.evaluate(() => {

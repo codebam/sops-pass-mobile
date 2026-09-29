@@ -15,6 +15,7 @@ import { gcm } from '@noble/ciphers/aes.js';
 import { sha512 } from '@noble/hashes/sha2.js';
 import { base64 } from '@scure/base';
 import { parse as parseYaml } from 'yaml';
+import { makeAgeIdentity, recipientForIdentity } from './age';
 import { utf8Decode, utf8Encode } from './utf8';
 
 export class SopsError extends Error {
@@ -290,7 +291,7 @@ export async function unwrapDataKey(meta: SopsMetadata, identity: string): Promi
   if (stanzas.length === 0) {
     throw new SopsFormatError('no age recipients found in sops metadata (pgp/kms-only files are not supported)');
   }
-  const recipient = await age.identityToRecipient(identity);
+  const recipient = await recipientForIdentity(identity);
   // Try our own stanza first (matching recipient), then any other (covers stanza order oddities).
   const ordered = [...stanzas].sort((a, b) => Number(b.recipient === recipient) - Number(a.recipient === recipient));
   let lastErr: unknown = null;
@@ -298,7 +299,7 @@ export async function unwrapDataKey(meta: SopsMetadata, identity: string): Promi
     if (typeof st.enc !== 'string' || st.enc.length === 0) continue;
     try {
       const d = new age.Decrypter();
-      d.addIdentity(identity);
+      d.addIdentity(makeAgeIdentity(identity));
       const blob = age.armor.decode(st.enc);
       const key = await d.decrypt(blob);
       if (key.length !== 32) {
