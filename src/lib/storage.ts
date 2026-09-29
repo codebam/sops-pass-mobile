@@ -21,7 +21,7 @@ export interface PersistedSettings {
 }
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
-  sync: { owner: 'codebam', repo: 'nixos', branch: 'main', path: 'secrets/passwords.enc.yaml' },
+  sync: { owner: 'codebam', repo: 'nixos', branch: 'master', path: 'secrets/passwords.enc.yaml' },
   lockEnabled: false,
   autoClearClipboard: true,
 };

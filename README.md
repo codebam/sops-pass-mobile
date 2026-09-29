@@ -94,8 +94,9 @@ consistent.)
 
 ## Sync settings (defaults)
 
-owner `codebam` · repo `nixos` · branch `main` · path `secrets/passwords.enc.yaml` —
-all editable in Settings.
+owner `codebam` · repo `nixos` · branch `master` · path `secrets/passwords.enc.yaml` —
+all editable in Settings. (The nixos repo's default branch is `master`; pointing at a
+nonexistent branch yields GitHub's `404 — No commit found for the ref`.)
 
 ## Verification (what was actually tested)
 
@@ -114,7 +115,7 @@ all editable in Settings.
 
 | Symptom | Cause / fix |
 | --- | --- |
-| `GitHub 404` | token lacks Contents: Read on `codebam/nixos`, or owner/repo/path/branch wrong |
+| `GitHub 404` | token lacks Contents: Read on `codebam/nixos`, owner/repo/path/branch wrong — a nonexistent branch also 404s (`No commit found for the ref …`); this repo's default branch is `master` |
 | `GitHub 401` | token invalid/expired/revoked |
 | decrypt error mentioning the identity | phone recipient not in `.sops.yaml`, or `updatekeys` not run/committed/pushed |
 | `MAC mismatch` | file changed after encryption, or not the sops-encrypted vault |
