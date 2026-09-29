@@ -33,7 +33,12 @@ const X25519_LABEL = /* @__PURE__ */ (() => new TextEncoder().encode('age-encryp
 /** Decode an `AGE-SECRET-KEY-1...` string to its 32-byte X25519 scalar. */
 function decodeIdentity(raw: string): Uint8Array {
   const trimmed = raw.trim();
-  const res = bech32.decodeToBytes(trimmed);
+  let res: { prefix: string; bytes: Uint8Array };
+  try {
+    res = bech32.decodeToBytes(trimmed);
+  } catch {
+    throw new Error('invalid age identity (expected AGE-SECRET-KEY-1...)');
+  }
   if (
     !trimmed.toUpperCase().startsWith('AGE-SECRET-KEY-1') ||
     res.prefix.toUpperCase() !== 'AGE-SECRET-KEY-' ||

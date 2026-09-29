@@ -12,7 +12,8 @@
  */
 import * as age from 'age-encryption';
 import { gcm } from '@noble/ciphers/aes.js';
-import { sha512 } from '@noble/hashes/sha2.js';
+import { sha256, sha512 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { base64 } from '@scure/base';
 import { parse as parseYaml } from 'yaml';
 import { makeAgeIdentity, recipientForIdentity } from './age';
@@ -312,10 +313,9 @@ export async function unwrapDataKey(meta: SopsMetadata, identity: string): Promi
   }
   const fileRecipients = stanzas.map((s) => s.recipient).filter((r): r is string => typeof r === 'string' && r.length > 0);
   throw new NoMatchingIdentityError(
-    `this device's recipient is ${recipient}. It does not match any recipient of this file ` +
-      `(${fileRecipients.length} present on the file). If the device key was re-generated, add the current ` +
-      `recipient (Settings → Device key) to .sops.yaml and run \`sops updatekeys\`; ` +
-      `(last error: ${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
+    `this device's recipient is ${recipient}. This file's recipients are: ${fileRecipients.join(', ')}. ` +
+      `If the device key was re-generated, add the current recipient (Settings → Device key) to .sops.yaml ` +
+      `and run \`sops updatekeys\`; (last error: ${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
   );
 }
 
@@ -334,7 +334,16 @@ export async function decryptSopsYaml(encryptedText: string, identity: string): 
   if (!(rawMeta instanceof Map)) throw new SopsFormatError('sops metadata not found in file');
   const metadata = toPlain(rawMeta) as SopsMetadata;
 
-  const dataKey = await unwrapDataKey(metadata, identity);
+  let dataKey: Uint8Array;
+  try {
+    dataKey = await unwrapDataKey(metadata, identity);
+  } catch (e) {
+    if (e instanceof NoMatchingIdentityError) {
+      const fp = bytesToHex(sha256(utf8Encode(encryptedText))).slice(0, 32);
+      throw new NoMatchingIdentityError(`${e.message} [fetched ${encryptedText.length} chars, sha256 ${fp}]`);
+    }
+    throw e;
+  }
 
   const ctx: WalkCtx = {
     dataKey,

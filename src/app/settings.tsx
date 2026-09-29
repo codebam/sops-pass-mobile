@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useApp } from '../state/AppContext';
+import { deviceKeySelfTest, type SelfTestResult } from '../lib/selftest';
 import { Button, Card, CopyButton, Field, Header, Mono, Note, Screen } from '../ui/kit';
 import { colors, space, type as typography } from '../ui/theme';
 
@@ -16,6 +17,8 @@ export default function SettingsScreen() {
   const [tokenInput, setTokenInput] = useState(app.token);
   const [showToken, setShowToken] = useState(false);
   const [showIdentity, setShowIdentity] = useState(false);
+  const [selfTest, setSelfTest] = useState<SelfTestResult | null>(null);
+  const [selfTestBusy, setSelfTestBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,6 +55,19 @@ export default function SettingsScreen() {
         },
       ],
     );
+  };
+
+  const runSelfTest = async () => {
+    if (!app.identity) return;
+    setSelfTestBusy(true);
+    setSelfTest(null);
+    try {
+      setSelfTest(await deviceKeySelfTest(app.identity));
+    } catch (e) {
+      setSelfTest({ ok: false, derivedRecipient: '—', message: `FAIL — ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setSelfTestBusy(false);
+    }
   };
 
   return (
@@ -147,6 +163,34 @@ export default function SettingsScreen() {
                 <Mono numberOfLines={4}>{app.identity}</Mono>
               </View>
               <CopyButton value={app.identity} label="Copy private key" kind="danger" small style={{ marginTop: space.sm }} />
+            </View>
+          ) : null}
+          {app.identity ? (
+            <View style={{ marginTop: space.md }}>
+              <Button
+                title="Run device-key self-test"
+                kind="secondary"
+                small
+                onPress={() => void runSelfTest()}
+                loading={selfTestBusy}
+              />
+              {selfTest ? (
+                <Text
+                  style={{
+                    marginTop: space.sm,
+                    fontSize: 12.5,
+                    lineHeight: 18,
+                    color: selfTest.ok ? colors.accent : colors.danger,
+                  }}
+                >
+                  {selfTest.message}
+                </Text>
+              ) : (
+                <Text style={{ ...typography.subtitle, marginTop: space.xs }}>
+                  Decrypts a bundled test file addressed to this device's key — verifies the whole key path on this
+                  device.
+                </Text>
+              )}
             </View>
           ) : null}
           <View style={{ marginTop: space.lg }}>
