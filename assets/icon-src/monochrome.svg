@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <mask id="kh">
+      <rect width="1024" height="1024" fill="white"/>
+      <circle cx="512" cy="418" r="65" fill="black"/>
+    </mask>
+  </defs>
+  <g fill="#ffffff" mask="url(#kh)">
+    <circle cx="512" cy="418" r="168"/>
+    <path d="M463 462 L438 730 Q434 780 486 780 L538 780 Q590 780 586 730 L561 462 Z"/>
+  </g>
+</svg>
