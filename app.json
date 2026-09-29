@@ -7,6 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b0e14",
     "ios": {
       "supportsTablet": true
     },
@@ -24,7 +25,28 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["expo-secure-store", "expo-router"],
+    "plugins": [
+      "expo-secure-store",
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0b0e14",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 37,
+            "targetSdkVersion": 37,
+            "buildToolsVersion": "37.0.0"
+          }
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }
