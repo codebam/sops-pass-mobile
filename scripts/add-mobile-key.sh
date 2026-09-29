@@ -35,35 +35,45 @@ if grep -qF "$RECIPIENT" "$SOPS_YAML"; then
 else
   cp "$SOPS_YAML" "$SOPS_YAML.bak"
   python3 - "$SOPS_YAML" "$RECIPIENT" <<'PY'
+import re
 import sys
 
 path, rec = sys.argv[1], sys.argv[2]
 with open(path) as f:
     lines = f.read().splitlines(keepends=True)
 
-# 1) add the anchor to the keys list: prefer right after &desktop, else after
-#    the last "  - &anchor" line.
+# 1) upsert the &phone anchor in the keys list: update in place when a &phone
+#    line already exists (re-onboarding after a key regeneration), otherwise
+#    insert after &desktop (or after the last anchor as a fallback).
 anchor_line = f"  - &phone {rec}\n"
-assert not any(anchor_line.rstrip("\n") in l for l in lines), "anchor already present"
-insert_key = None
-for i, l in enumerate(lines):
-    if l.strip().startswith("- &desktop"):
-        insert_key = i + 1
-if insert_key is None:
+existing = [i for i, l in enumerate(lines) if re.match(r"^\s*-\s*&phone\s+", l)]
+if existing:
+    lines[existing[0]] = anchor_line
+    for i in reversed(existing[1:]):
+        del lines[i]
+    print(f"updated '&phone' -> {rec}" + (f" (collapsed {len(existing)} duplicates)" if len(existing) > 1 else ""))
+else:
+    insert_key = None
     for i, l in enumerate(lines):
-        if l.strip().startswith("- &"):
+        if l.strip().startswith("- &desktop"):
             insert_key = i + 1
-assert insert_key is not None, "no '  - &anchor' line found in keys section"
-lines.insert(insert_key, anchor_line)
+    if insert_key is None:
+        for i, l in enumerate(lines):
+            if l.strip().startswith("- &"):
+                insert_key = i + 1
+    assert insert_key is not None, "no '  - &anchor' line found in keys section"
+    lines.insert(insert_key, anchor_line)
+    print(f"added '&phone {rec}'")
 
-# 2) reference *phone in the age list of the creation rule: after the last
-#    deeply-indented "          - *anchor" line.
-insert_ref = None
-for i, l in enumerate(lines):
-    if l.lstrip().startswith("- *"):
-        insert_ref = i + 1
-assert insert_ref is not None, "no '          - *anchor' entries found to extend"
-lines.insert(insert_ref, "          - *phone\n")
+# 2) ensure the *phone reference exists in the age list of the creation rule.
+if not any(l.lstrip().startswith("- *phone") for l in lines):
+    insert_ref = None
+    for i, l in enumerate(lines):
+        if l.lstrip().startswith("- *"):
+            insert_ref = i + 1
+    assert insert_ref is not None, "no '          - *anchor' entries found to extend"
+    lines.insert(insert_ref, "          - *phone\n")
+    print("added '*phone' reference")
 
 with open(path, "w") as f:
     f.write("".join(lines))

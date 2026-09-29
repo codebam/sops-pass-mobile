@@ -310,9 +310,12 @@ export async function unwrapDataKey(meta: SopsMetadata, identity: string): Promi
       lastErr = e;
     }
   }
+  const fileRecipients = stanzas.map((s) => s.recipient).filter((r): r is string => typeof r === 'string' && r.length > 0);
   throw new NoMatchingIdentityError(
-    "this device's key is not a recipient of this file — ask the file owner to run `sops updatekeys` " +
-      `after adding age1... to .sops.yaml (last error: ${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
+    `this device's recipient is ${recipient}. It does not match any recipient of this file ` +
+      `(${fileRecipients.length} present on the file). If the device key was re-generated, add the current ` +
+      `recipient (Settings → Device key) to .sops.yaml and run \`sops updatekeys\`; ` +
+      `(last error: ${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
   );
 }
 

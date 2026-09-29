@@ -75,7 +75,8 @@ consistent.)
    ```
 
    It adds `&phone` to the key list and `*phone` to the creation rule in
-   `.sops.yaml`, then runs `sops updatekeys secrets/passwords.enc.yaml` to re-wrap
+   `.sops.yaml` (re-running it with a new recipient updates `&phone` in place),
+   then runs `sops updatekeys secrets/passwords.enc.yaml` to re-wrap
    the vault data key (values are not re-encrypted).
 
    `sops updatekeys` needs exactly one identity that can decrypt the file today:
