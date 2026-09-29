@@ -43,4 +43,11 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+
+# Android — the native project is committed (self-contained release builds),
+# but build outputs and machine-local paths are not
+android/.gradle/
+android/build/
+android/app/build/
+android/.kotlin/
+android/local.properties

@@ -11,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "ca.codebam.sopspass",
       "adaptiveIcon": {
         "backgroundColor": "#0b0e14",
         "foregroundImage": "./assets/android-icon-foreground.png",

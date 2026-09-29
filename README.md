@@ -54,9 +54,9 @@ code can never connect from the phone. Connect over the tailnet instead — the 
 
 ```sh
 # QR + URL encode the tailnet IP:
-EXPO_PACKAGER_HOSTNAME=100.101.46.50 npx expo start --port 8082
+EXPO_PACKAGER_HOSTNAME=<your-tailscale-ip> npx expo start --port 8082
 # or keep the default start and in Expo Go use "Enter URL manually":
-#   exp://100.101.46.50:8082      (MagicDNS: exp://nixos-desktop.tail7d7a2.ts.net:8082)
+#   exp://<your-tailscale-ip>:8082      (MagicDNS: exp://nixos-desktop.<tailnet>.ts.net:8082)
 ```
 
 The dev server reflects the requesting host, so manifest, JS bundle and hot reload
@@ -120,7 +120,7 @@ nonexistent branch yields GitHub's `404 — No commit found for the ref`.)
 | `GitHub 401` | token invalid/expired/revoked |
 | decrypt error mentioning the identity | phone recipient not in `.sops.yaml`, or `updatekeys` not run/committed/pushed |
 | `MAC mismatch` | file changed after encryption, or not the sops-encrypted vault |
-| QR won't connect | Expected on LAN: the NixOS firewall blocks dev ports from `wlan0` by design. Connect over Tailscale — `EXPO_PACKAGER_HOSTNAME=100.101.46.50 npx expo start --port 8082`, or enter `exp://100.101.46.50:8082` manually |
+| QR won't connect | Expected on LAN: the NixOS firewall blocks dev ports from `wlan0` by design. Connect over Tailscale — `EXPO_PACKAGER_HOSTNAME=<your-tailscale-ip> npx expo start --port 8082`, or enter `exp://<your-tailscale-ip>:8082` manually |
 | Expo Go shows "unsupported SDK" | update Expo Go from the Play Store (needs SDK 57) |
 
 ## Repo layout
